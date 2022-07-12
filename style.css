@@ -1,0 +1,9 @@
+.title, .subtitle {
+  font-family: Impact, Arial Black, monospace; 
+  font-weight: 400;
+}
+
+.author, .date {
+  font-family: Impact, Arial Black, monospace;
+  font-weight: lighter;
+}

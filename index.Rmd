@@ -1,12 +1,49 @@
 ---
 title: 'SciComm: Long Covid'
+subtitle: "test"
 author: "Ondrej Pekacek"
-date: "`r Sys.Date()`"
-output: html_document
+date: "`r  format(Sys.Date(),'%d %B, %Y')`"
+output:
+  html_document:
+    theme: united
+    highlight: tango
+    css: "style.css"
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+![Photo by <a href="https://unsplash.com\@harashog?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Sarah G.</a> on <a href="https://unsplash.com/s/photos/confused-dog?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Unsplash</a>](img/header.jpg)
+```{r install_packages, include=FALSE}
+
+# Package names
+packages <- c("dplyr", "readr", "ggplot2", "coronavirus")
+
+# Install packages not yet installed
+installed_packages <- packages %in% rownames(installed.packages())
+if (any(installed_packages == FALSE)) {
+  install.packages(packages[!installed_packages])
+}
+
+# Packages loading
+invisible(lapply(packages, library, character.only = TRUE))
 ```
 
-![Photo by <a href="https://unsplash.com\@harashog?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Sarah G.</a> on <a href="https://unsplash.com/s/photos/confused-dog?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Unsplash</a>](img/header.jpg)
+
+
+```{r get_covid_data, cache=TRUE}
+
+# Update dataset to get newest stats
+update_dataset(silence = TRUE)
+
+summary_df <- coronavirus %>% 
+  filter(type == "confirmed") %>%
+  group_by(country) %>%
+  summarise(total_cases = sum(cases)) %>%
+  arrange(-total_cases)
+
+```
+
+
+
+```{r get_gtrends, cache=TRUE}
+
+```
+
