@@ -1,0 +1,12 @@
+---
+title: 'SciComm: Long Covid'
+author: "Ondrej Pekacek"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+![Photo by <a href="https://unsplash.com\@harashog?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Sarah G.</a> on <a href="https://unsplash.com/s/photos/confused-dog?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Unsplash</a>](img/header.jpg)
