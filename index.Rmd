@@ -24,7 +24,7 @@ bibliography: src/references.bib
 knitr::opts_chunk$set(echo = TRUE, cache = TRUE, out.width = "100%", message = FALSE, warning = FALSE)
 ```
 
-```{r get_data, eval=FALSE, include=FALSE}
+```{r get_data, include=FALSE}
 # Package names
 packages <- c("dplyr", "readr", "ggplot2", "coronavirus", "plotly", "gtrendsR", "medrxivr", "pageviews", "scales")
 
@@ -101,7 +101,7 @@ wiki <- article_pageviews(
   summarise(monthly_n = sum(views))
 
 
-# Pre-Prints in the medRxiv database --------------------------------------
+# Preprints in the medRxiv database --------------------------------------
 
 # Import the medRxiv database from a cached snapshot
 preprint_data <- mx_snapshot()
@@ -130,7 +130,7 @@ medrxiv <- mx_search(
   count(month, name = "monthly_n") %>%
   ungroup()
 
-# Combine Google Trends, Wikipedia views and Pre-Prints -------------------
+# Combine Google Trends, Wikipedia views and Preprints -------------------
 combined_data <- bind_rows(list(
   "Google" = gtrends,
   "Wikipedia" = wiki,
@@ -148,13 +148,13 @@ combined_data <- bind_rows(list(
 
 ***
 
-### It seems that we keep hearing about Long Covid more and more... <br> Perhaps we have somebody in our surrounding that suffer with it... <br> This blog post will try to look more closely at this concept and the public and scientific interest in it.
+### It seems that we keep hearing about Long Covid more and more... <br><br> Perhaps we have somebody in our surrounding that suffer from it... <br><br> This post looks more closely at the public and scientific interest in this topic.
 
 <br>
 
 #### **Q: Okay, hold on. What actually is Long Covid?**
 
-As of mid-2022, *Long Covid* (or *post-COVID syndrome*) is far from fully understood, and its research is constantly in flux. For instance, [CDC's](https://www.cdc.gov/coronavirus/2019-ncov/long-term-effects/index.html) website lists potential symptoms people can experience without testing positive for COVID-19: tiredness, chronic cough, and "brain fog," among many others. These symptoms can last for months and possibly years - it is simply too soon to say.
+As of mid-2022, *Long Covid* (or *post-COVID syndrome*) is far from fully understood, and its research is constantly in flux. For instance, [CDC's](https://www.cdc.gov/coronavirus/2019-ncov/long-term-effects/index.html) website lists potential symptoms people can experience without testing positive for Covid-19: tiredness, chronic cough, and "brain fog," among many others. These symptoms can last for months and possibly years - it is simply too soon to say.
 
 <br>
 
@@ -216,7 +216,7 @@ For this reason, scientists prefer consulting "studies of studies," better known
 
 That is not a trivial question to answer. It depends on the angle we look. To even try, we need to establish some common baseline. We are talking about the concept of Long Covid as it exists in English. Since you are reading this article in English, there is a higher chance you come from a country where English is the majority language. We can thus suppose that the public interest in the "Long Covid" (and not "ロングコビッド") will not be equally geographically distributed. 
 
-However, the same applies to COVID-19 itself. If you look at the graphic below, you might find it quite different from the previous one - the number of confirmed cases sometimes varies enormously from continent to continent (although Q1 2022 was the worst for each continent, except for Oceania). So, this is something to keep in mind when interpreting the data further.
+However, the same applies to Covid-19 itself. If you look at the graphic below, you might find it quite different from the previous one - the number of confirmed cases sometimes varies enormously from continent to continent (although Q1 2022 was the worst for each continent, except for Oceania). So, this is something to keep in mind when interpreting the data further.
 
 
 ```{r plot_covid_continent}
@@ -271,15 +271,13 @@ However, the same applies to COVID-19 itself. If you look at the graphic below, 
 
 #### **Q: You seem to suggest that the attention to Long Covid is unequal. Other than continents, can you give me a concrete example?**
 
-If only there was a single measure of public interest in some topic! Since this is not the case, we need to make our way around it and use what scientists call "triangulation". In plain language, it means that to measure some phenomena, we need to combine multiple methods and/or data sources, to increase the reliability of our findings (similar logic to *meta-analyses* we discussed previously). 
+If only there were a single measure of public interest in some topic! Since this is not the case, we must make our way around it and use what scientists call "triangulation." In plain language, it means measuring some phenomena, combining multiple methods and data sources to increase the reliability of our findings (similar logic to the *meta-analyses* we discussed previously). 
 
-In practice, to answer the question of public attention to Long Covid, we can use tools such as Google Trends, which gives us information about an intensity of interest in some search term over time. We can then "triangulate" it with data from Wikipedia, which gives us information of how many people viewed a Long Covid page.
+In practice, we can use tools such as Google Trends to answer the question of public attention to Long Covid, which gives us information about the intensity of interest in some search terms over time. We can then "triangulate" it with data from Wikipedia, which gives us information on how many people viewed a Long Covid page.
 
-As you can see in the graph below - Long Covid Wiki page only first appeared in second half of 2020, however, the intensity of its visits seem to have correlated with Google Trends. Intuitively this is probably not to surprising - if we Google for a specific term, link to Wikipedia is one of the first we usually see. Nevertheless, this exercise is important to us, as it lends some credibility to the data from Google searches.
+As you can see in the graph below - the Long Covid Wiki page only first appeared in the second half of 2020; however, the intensity of its visits seems to have correlated with Google Trends. Intuitively this is probably not too surprising - if we Google for a specific term, a link to Wikipedia is one of the first we usually see. Nevertheless, this exercise is essential to us, as it lends some credibility to the data from Google searches.
 
-If we look closer, we might see some prominent "peaks" of public interest in the subject. Winter 2020/2021 was probably the period when Long Covid first started being noticed by wider English-speaking public. However, it seems to have been summer 2021 and winter 2021/2022 when the concept truly went mainstream.
-
-<br>
+If we look closer, we might see some prominent "peaks" of public interest in the subject. Winter 2020/2021 was probably when Long Covid first started being noticed by the wider English-speaking public. However, it seems to have been summer 2021 and winter 2021/2022 when the concept went mainstream.
 
 ```{r plot_gtrends_wiki_medrxiv}
 # Graph combining intensity of interest in Long Covid topic ---------------
@@ -292,7 +290,7 @@ If we look closer, we might see some prominent "peaks" of public interest in the
     ylab(element_blank()) +
     xlab(element_blank()) +
     scale_colour_manual(values = discrete_palette) +
-    labs(title = "Relative Interest in Long Covid Through Time: <br> Wikipedia, Google Trends and Pre-Prints") +
+    labs(title = "Relative Interest in Long Covid Through Time: <br> Wikipedia, Google Trends and medrXiv preprints") +
     theme_bw() +
     theme(
       axis.text.x = element_text(angle = 45, hjust = 1),
@@ -321,7 +319,7 @@ If we look closer, we might see some prominent "peaks" of public interest in the
       list(
         x = 1,
         y = -0.16,
-        text = "Source: Wikipedia (visits to English-version Long Covid page), Google Trends (global Long Covid search intensity) & medRxiv (number of published pre-prints on Long Covid). Data scaled to fit between 0-100% within each source.",
+        text = "Source: Wikipedia (visits to English-version Long Covid page), Google Trends (global Long Covid search intensity) & medRxiv (number of published preprints on Long Covid). Data scaled to fit between 0-100% within each source.",
         showarrow = FALSE,
         xref = "paper",
         yref = "paper",
@@ -329,6 +327,29 @@ If we look closer, we might see some prominent "peaks" of public interest in the
       )
   )
 ```
+
+<br>
+
+#### **Q: There is something strange here. How can we explain the peak of interest in the mid-2021, given that cases were relatively lower?**
+
+Excellent graph-looking! Indeed, this is a perfect example of why we hear scientists say that "correlation is not causation." While we might associate the interest in Long Covid with Covid-19 cases, many factors could be in play. One of them might be media coverage of Long Covid. 
+
+While "normal" scientific processes, such as peer-review of journal articles, take much time, the Covid-19 pandemic has been fast-evolving. To deal with this, researchers extensively used *preprint* articles, published shortly after study completion and without peer review. One of the most central repositories of these medical preprints is medrXiv. 
+
+These preprints have not only been read by other scientists but also by media outlets. As a study (peer-reviewed, for that matter) of @fleerackers2022 finds, the usage of evidence from media's preprints has often been troubling. Outlets frequently "forget" to mention that their source is a preprint and that the findings should thus be viewed very carefully. In some cases, as the data journalist Aleszu Bajak and his colleagues [write in NYT](https://www.nytimes.com/2020/05/14/opinion/coronavirus-research-misinformation.html), preprints became "weaponized". One particular preprint from April 2020 went viral on social media to provide an argument for opponents of social mitigation efforts to contain Covid-19.    
+
+If we look at the intensity of research interest in Long Covid, as measured by medrXiv preprints, it would seem that there was an early peak in autumn 2020, which preceded the public interest in the subsequent winter period.
+
+<br>
+
+#### **Q: Does that mean we can prove that preprints are first picked up by media, which in turn get people interested in Long Covid?**
+
+While this is a relative intuitive explanation and there are some hints from recent studies that this might be the case, we have to be again very careful.
+For instance, what about the seeming disconnect between preprints and Google/Wiki data since the beginning of 2022? To better disentangle this, we would need to look closer and give fair evaluation to other data sources and explanations.
+
+<br>
+
+#### Summing up: <br><br> Scientific work might be part art and part luck, but a significant part of the process still consists of a thorough detective-like job, which includes regular questioning of our pre-existing beliefs and openness to the change of opinion. <br> <br> This is no different when it comes to the Long Covid subject. 
 
 <br> 
 
