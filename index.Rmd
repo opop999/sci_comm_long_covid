@@ -1,19 +1,26 @@
 ---
-title: 'SciComm: Long Covid'
-subtitle: "test"
+title: "Long Covid:"
+subtitle: "What is the buzz all about?"
 author: "Ondrej Pekacek"
-date: "`r  format(Sys.Date(),'%d %B, %Y')`"
-output:
-  html_document:
-    theme: united
-    highlight: tango
-    css: "src/style.css"
+date: "`r format(Sys.Date(),'%d %B, %Y')`"
+nocite: "@*"
 bibliography: src/references.bib
 csl: src/apa.csl
-nocite: '@*'
+output:
+  html_document:
+    code_folding: hide
+    css: src/style.css
+    theme: united
+    highlight: tango
+    includes:
+      in_header: src/header.html
 ---
 
+
 ![Photo by <a href="https://unsplash.com\@harashog?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Sarah G.</a> on <a href="https://unsplash.com/s/photos/confused-dog?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Unsplash</a>](img/header.jpg)
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, include=FALSE)
+```
 
 ```{r install_packages, include=FALSE, cache=TRUE}
 

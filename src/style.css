@@ -3,7 +3,16 @@
   font-weight: 400;
 }
 
-.author, .date {
+.author {
   font-family: Impact, Arial Black, monospace;
   font-weight: lighter;
+  font-style: italic;
+  font-size: 16px;
+}
+
+
+.date {
+  font-family: Impact, Arial Black, monospace;
+  font-weight: lighter;
+  font-size: 16px;
 }
