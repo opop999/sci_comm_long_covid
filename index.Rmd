@@ -2,7 +2,7 @@
 title: "Long Covid:"
 subtitle: "What is the buzz all about?"
 author: "Ondrej Pekacek"
-date: "`r format(Sys.Date(),'%d %B, %Y')`"
+date: "12 July, 2022"
 output:
   html_document:
     code_folding: hide
@@ -16,12 +16,15 @@ csl: src/apa.csl
 bibliography: src/references.bib
 ---
 
+***
+
 ![Photo by <a href="https://unsplash.com\@harashog?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Sarah G.</a> on <a href="https://unsplash.com/s/photos/confused-dog?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Unsplash</a>](img/header.jpg)
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, cache = TRUE, out.width = "100%", message = FALSE, warning = FALSE)
 ```
 
-```{r get_data}
+```{r get_data, eval=FALSE, include=FALSE}
 # Package names
 packages <- c("dplyr", "readr", "ggplot2", "coronavirus", "plotly", "gtrendsR", "medrxivr", "pageviews", "scales")
 
@@ -141,7 +144,25 @@ combined_data <- bind_rows(list(
   ungroup()
 ```
 
+> *Note to reader: This blog post is a project for the Science Communication Laboratories course at the University of Vienna. The simulated Q&A format between an "expert" and a member of the public was inspired by an article at* [Krautreporter](https://krautreporter.de/4299-quantencomputer-verstandlich-erklart)*. The graphs presented in this article are produced in a fully reproducible programmatic way. You can see the script by clicking on a particulate "code" label. Furthermore, the complete source code of this project is available in a [GitHub repository](https://github.com/opop999/sci_comm_long_covid%22).*
 
+***
+
+### It seems that we keep hearing about Long Covid more and more... <br> Perhaps we have somebody in our surrounding that suffer with it... <br> This blog post will try to look more closely at this concept and the public and scientific interest in it.
+
+<br>
+
+#### **Q: Okay, hold on. What actually is Long Covid?**
+
+As of mid-2022, *Long Covid* (or *post-COVID syndrome*) is far from fully understood, and its research is constantly in flux. For instance, [CDC's](https://www.cdc.gov/coronavirus/2019-ncov/long-term-effects/index.html) website lists potential symptoms people can experience without testing positive for COVID-19: tiredness, chronic cough, and "brain fog," among many others. These symptoms can last for months and possibly years - it is simply too soon to say.
+
+<br>
+
+#### **Q: That sound unpleasant! How many people does it affect?**
+
+First, let's discuss how to get the most reliable answer to a scientific question, which is even more critical for phenomena like Long Covid, which are developing as we speak (or write). Unfortunately, individual studies can sometimes paint a wildly inaccurate picture of reality. This can be due to many reasons, such as inappropriate methodology, a small research sample, or a stroke of pure bad luck!
+
+For this reason, scientists prefer consulting "studies of studies," better known as *meta-analyses* or *systematic reviews*. The most recent one (April 2022) on this question, from @chen2022, suggests that there might be around 200 million people globally affected by Long Covid! As shown in the graphic below, while Covid cases are down from their peak in the first quarter of 2022, at least 15 million people are infected monthly. Unfortunately, this means that the 200 million figure is probably not the ceiling... 
 
 ```{r plot_covid_world}
 # Graph for all Covid-19 cases worldwide ----------------------------------
@@ -188,6 +209,14 @@ combined_data <- bind_rows(list(
       )
   )
 ```
+
+<br>
+
+#### **Q: I see. But let's rewind the time a bit. How did Long Covid even enter our social media feeds and daily vocabulary?**
+
+That is not a trivial question to answer. It depends on the angle we look. To even try, we need to establish some common baseline. We are talking about the concept of Long Covid as it exists in English. Since you are reading this article in English, there is a higher chance you come from a country where English is the majority language. We can thus suppose that the public interest in the "Long Covid" (and not "ロングコビッド") will not be equally geographically distributed. 
+
+However, the same applies to COVID-19 itself. If you look at the graphic below, you might find it quite different from the previous one - the number of confirmed cases sometimes varies enormously from continent to continent (although Q1 2022 was the worst for each continent, except for Oceania). So, this is something to keep in mind when interpreting the data further.
 
 
 ```{r plot_covid_continent}
@@ -238,6 +267,19 @@ combined_data <- bind_rows(list(
   )
 ```
 
+<br>
+
+#### **Q: You seem to suggest that the attention to Long Covid is unequal. Other than continents, can you give me a concrete example?**
+
+If only there was a single measure of public interest in some topic! Since this is not the case, we need to make our way around it and use what scientists call "triangulation". In plain language, it means that to measure some phenomena, we need to combine multiple methods and/or data sources, to increase the reliability of our findings (similar logic to *meta-analyses* we discussed previously). 
+
+In practice, to answer the question of public attention to Long Covid, we can use tools such as Google Trends, which gives us information about an intensity of interest in some search term over time. We can then "triangulate" it with data from Wikipedia, which gives us information of how many people viewed a Long Covid page.
+
+As you can see in the graph below - Long Covid Wiki page only first appeared in second half of 2020, however, the intensity of its visits seem to have correlated with Google Trends. Intuitively this is probably not to surprising - if we Google for a specific term, link to Wikipedia is one of the first we usually see. Nevertheless, this exercise is important to us, as it lends some credibility to the data from Google searches.
+
+If we look closer, we might see some prominent "peaks" of public interest in the subject. Winter 2020/2021 was probably the period when Long Covid first started being noticed by wider English-speaking public. However, it seems to have been summer 2021 and winter 2021/2022 when the concept truly went mainstream.
+
+<br>
 
 ```{r plot_gtrends_wiki_medrxiv}
 # Graph combining intensity of interest in Long Covid topic ---------------
@@ -288,5 +330,9 @@ combined_data <- bind_rows(list(
   )
 ```
 
+<br> 
 
-### References ^[Acknowledgements: The inspiration for this science communication format has been the article from [Krautreporter](https://krautreporter.de/4299-quantencomputer-verstandlich-erklart)]
+***
+
+#### **References**
+
