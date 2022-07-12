@@ -17,10 +17,10 @@ nocite: '@*'
 
 ![Photo by <a href="https://unsplash.com\@harashog?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Sarah G.</a> on <a href="https://unsplash.com/s/photos/confused-dog?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Unsplash</a>](img/header.jpg)
 
-```{r install_packages, include=FALSE}
+```{r install_packages, include=FALSE, cache=TRUE}
 
 # Package names
-packages <- c("dplyr", "readr", "ggplot2", "coronavirus", "plotly")
+packages <- c("dplyr", "readr", "ggplot2", "coronavirus", "plotly", "gtrendsR", "medrxivr")
 
 # Install packages not yet installed
 installed_packages <- packages %in% rownames(installed.packages())
@@ -30,58 +30,55 @@ if (any(installed_packages == FALSE)) {
 
 # Packages loading
 invisible(lapply(packages, library, character.only = TRUE))
-```
-
-```{r get_covid_data, cache=TRUE}
 
 # Update the dataset from coronavirus package to get newest stats
 update_dataset(silence = TRUE)
+```
 
+```{r get_covid_data, echo=FALSE, cache=TRUE}
 
 # Summarize the data to get weekly new Covid cases for all countries combined
-summary_df <- coronavirus %>% 
-  filter(type == "confirmed") %>%
+weekly_new_cases <- coronavirus %>% 
+  filter(type == "confirmed" & date < as.Date("2022-07-01")) %>%
   mutate(week = as.Date(cut(date, breaks = "weeks", start.on.monday = TRUE))) %>% 
   group_by(week) %>%
-  summarise(total_cases = sum(cases))
+  summarise(million_new_cases = sum(cases)/1000000)
 
-(
-  summary_df %>% 
-  ggplot(aes(x = week, y = total_cases)) +
-  geom_line() +
-  geom_point(size = 0.5) +
+(weekly_new_cases %>% 
+  ggplot(aes(x = week, y = million_new_cases)) +
+  geom_line(color = "#1a53ff") +
+  geom_point(size = 0.5, color = "#1a53ff") +
   ylab(element_blank()) +
   xlab(element_blank()) +
-  labs(title = "Proportion of Migration Content in the Czech news media: 2015-2022",
-       subtitle = "Percent of overall publishing output aggregated by month and split by media type",
-       caption = "Data: Dong et al., 2020") +
+  labs(title = "Weekly confirmed COVID-19 cases, all countries (in million)") +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1),
         axis.text = element_text(size = 7),
         plot.background = element_rect(fill = "grey90"),
-        plot.title = element_text(face = "bold", size = 10),
-        plot.subtitle = element_text(face = "italic", size = 8),
-        plot.caption = element_text(size = 4.5),
+        plot.title = element_text(face = "bold", size = 14),
         axis.title.y = element_text(size = 8),
         legend.title = element_blank(),
         legend.text = element_text(size = 9),
         legend.key = element_rect(fill = NA),
         legend.background = element_rect(fill = NA),
-        legend.position = c(0.8, 0.9),
-        plot.margin = margin(7,30,3,5, "pt")) +
-  scale_x_date(date_breaks = "1 month", date_labels = "%m-%y") +
-  # coord_cartesian(xlim = c(start_date, end_date + 120), expand = FALSE) +
+        plot.margin = margin(10,30,25,5, "pt")) +
+  scale_x_date(date_breaks = "1 month", date_labels = "%b-%y") +
   scale_y_continuous(
   expand = c(0, 0),
-  breaks = seq(0, 1, 0.05),
-  labels = paste0(seq(0, 100, 5), "%"),
-  limits = c(0, max(summary_df$total_cases) + 1000000)
-  )
-  
-  
-  
+  breaks = seq(0, 100, 5),
+  labels = seq(0, 100, 5),
+  limits = c(0, max(weekly_new_cases$million_new_cases) + 1))
   ) %>%
-  ggplotly()
+  ggplotly() %>% 
+  layout(annotations = 
+          list(x = 1,
+               y = -0.15, 
+                text = "Data: Dong et al., 2020",
+                showarrow = FALSE,
+                xref='paper',
+                yref='paper',
+                font = list(size = 10)
+               ))
 
 
 ```

@@ -11,7 +11,7 @@
 # PART 1: LOAD THE REQUIRED R LIBRARIES
 
 # Package names
-packages <- c("dplyr", "gtrendsR", "data.table", "arrow", "stringr", "tidyr")
+packages <- c("dplyr", "gtrendsR", "stringr")
 
 # Install packages not yet installed
 installed_packages <- packages %in% rownames(installed.packages())
@@ -44,15 +44,15 @@ extract_gtrends <- function(search_terms, start_date, end_date, dir_name) {
     # Formulate the Google Trends query using function from the gtrendsR package
     gtrends_query <- gtrends(
       keyword = search_terms[[i]],
-      geo = "CZ",
+      geo = "",
       time = paste(start_date, end_date),
       gprop = "web",
       category = 0,
       hl = "cs",
-      low_search_volume = TRUE,
+      low_search_volume = FALSE,
       cookie_url = "http://trends.google.com/Cookies/NID",
       tz = 0,
-      onlyInterest = FALSE
+      onlyInterest = TRUE
     )
     
     if (!is.null(gtrends_query$interest_over_time)) {
@@ -94,19 +94,12 @@ extract_gtrends <- function(search_terms, start_date, end_date, dir_name) {
     ) %>%
     arrange(desc(popularity))
   
-  # We save the cleaned tables in a memory to a dedicated csv and rds file
-  # Rds enables faster reading when using the dataset in R for further analyses
-  # We turn off compression for rds files (optional). Their size is larger, but
-  # the advantage are a magnitude faster read/write times using R.
+  # We save the cleaned tables in a memory to a dedicated rds file
   
-  fwrite(x = gtrends_df_clean, file = paste0(dir_name, "/full_data_gtrends.csv"))
-  saveRDS(object = gtrends_df_clean, file = paste0(dir_name, "/full_data_gtrends.rds"), compress = FALSE)
-  write_feather(x = gtrends_df_clean, sink = paste0(dir_name, "/full_data_gtrends.feather"))
-  
-  fwrite(x = related_topics_df_clean, file = paste0(dir_name, "/full_data_gtrends_related_topics.csv"))
-  saveRDS(object = related_topics_df_clean, file = paste0(dir_name, "/full_data_gtrends_related_topics.rds"), compress = FALSE)
-  write_feather(x = related_topics_df_clean, sink = paste0(dir_name, "/full_data_gtrends_related_topics.feather"))
-  
+  saveRDS(object = gtrends_df_clean, file = paste0(dir_name, "/full_data_gtrends.rds"))
+
+  saveRDS(object = related_topics_df_clean, file = paste0(dir_name, "/full_data_gtrends_related_topics.rds"))
+
 }
 
 
