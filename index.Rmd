@@ -11,8 +11,6 @@ output:
 bibliography: src/references.bib
 csl: src/apa.csl
 nocite: '@*'
-
-
 ---
 
 ![Photo by <a href="https://unsplash.com\@harashog?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Sarah G.</a> on <a href="https://unsplash.com/s/photos/confused-dog?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Unsplash</a>](img/header.jpg)
@@ -20,7 +18,7 @@ nocite: '@*'
 ```{r install_packages, include=FALSE, cache=TRUE}
 
 # Package names
-packages <- c("dplyr", "readr", "ggplot2", "coronavirus", "plotly", "gtrendsR", "medrxivr")
+packages <- c("dplyr", "readr", "ggplot2", "coronavirus", "plotly", "gtrendsR", "medrxivr", "pageviews", "scales")
 
 # Install packages not yet installed
 installed_packages <- packages %in% rownames(installed.packages())
@@ -35,44 +33,129 @@ invisible(lapply(packages, library, character.only = TRUE))
 update_dataset(silence = TRUE)
 ```
 
-```{r get_covid_data, echo=FALSE, cache=TRUE}
+```{r constant_variables, include=FALSE}
+discrete_palette <- c("#e60049", "#0bb4ff", "#e6d800", "#9b19f5", "#ffa300", "#dc0ab4", "#b3d4ff", "#00bfa0")
+start_date <- as.Date("2020-01-01")
+end_date <- as.Date("2022-07-01")
+```
 
+```{r summarize_covid_data, echo=FALSE, cache=TRUE, out.width="100%"}
 # Summarize the data to get weekly new Covid cases for all countries combined
-weekly_new_cases <- coronavirus %>% 
-  filter(type == "confirmed" & date < as.Date("2022-07-01")) %>%
+weekly_cases <- coronavirus %>% 
+  filter(type == "confirmed" & date < end_date) %>%
   mutate(week = as.Date(cut(date, breaks = "weeks", start.on.monday = TRUE))) %>% 
   group_by(week) %>%
-  summarise(million_new_cases = sum(cases)/1000000)
+  summarise(million_new_cases = round(sum(cases)/1000000, 3))
 
-(weekly_new_cases %>% 
+# Repeat the same for continents
+weekly_cases_continent <- coronavirus %>% 
+  filter(type == "confirmed" & date < end_date & !is.na(continent_name)) %>%
+  mutate(week = as.Date(cut(date, breaks = "weeks", start.on.monday = TRUE)),
+         continent_name = as.factor(continent_name)) %>% 
+  group_by(week, continent_name) %>%
+  summarise(million_new_cases = round(sum(cases)/1000000, 3))
+```
+
+```{r get_gtrends, cache=TRUE}
+# Extract Google Trends data using the gtrendsR package
+gtrends <- gtrends(
+  keyword = "long covid",
+  geo = "",
+  time = paste(start_date, end_date),
+  gprop = "web",
+  onlyInterest = TRUE
+) %>%
+  .[["interest_over_time"]] %>%
+  transmute(
+    week = as.Date(cut(as.Date(date) + 1, breaks = "weeks", start.on.monday = TRUE)),
+    weekly_hits = as.numeric(replace(hits, hits == "<1", "0"))
+  )
+```
+
+```{r get_wiki, cache=TRUE}
+# Extract data for visits of "Long Covid" Wiki page from human users with pageviews package
+wiki <- article_pageviews(
+    project = "en.wikipedia",
+    article = "Long_COVID",
+    user_type = "user", 
+    start = pageview_timestamps(start_date),
+    end = pageview_timestamps(end_date),
+    granularity = "daily"
+  ) %>% 
+    transmute(
+    week = as.Date(cut(as.Date(date) + 1, breaks = "weeks", start.on.monday = TRUE)),
+    views = as.numeric(views)
+  ) %>% 
+  group_by(week) %>%
+  summarise(weekly_hits = sum(views))
+```
+
+```{r combine_gtrends_wiki, cache=TRUE}
+gtrends_wiki_combined <- bind_rows(list("Google" = gtrends,
+                                        "Wikipedia" = wiki),
+                                   .id = "data_source") %>% 
+  filter(week < end_date) %>%
+  group_by(data_source) %>% 
+  mutate(weekly_hits_scaled = round(rescale(weekly_hits, to = c(0, 100)))) %>% 
+  ungroup()
+
+```
+
+
+```{r get_medrxiv}
+# Import the medrxiv database
+preprint_data <- mx_snapshot()
+
+# Get cumulative counts
+medrxiv <- mx_search(data = preprint_data,
+                     fields = c("title"),
+                     auto_caps = TRUE,
+                     query = c("long covid",
+                               "long Covid",
+                               "long COVID",
+                               "long-COVID",
+                               "long COVID-19",
+                               "long Covid-19")) %>% 
+                  mutate(week = as.Date(cut(as.Date(date), breaks = "weeks", start.on.monday = TRUE))) %>% 
+                  count(week) %>% 
+                  ungroup() %>% 
+                  arrange(week) %>% 
+                  mutate(cumulative_n = cumsum(n))
+
+```
+
+
+```{r plot_covid_world, echo=FALSE, cache=TRUE, out.width="100%"}
+
+(weekly_cases %>% 
   ggplot(aes(x = week, y = million_new_cases)) +
-  geom_line(color = "#1a53ff") +
-  geom_point(size = 0.5, color = "#1a53ff") +
+  geom_line(color = "#1A53FF") +
+  geom_point(size = 0.3, color = "#1A53FF") +
   ylab(element_blank()) +
   xlab(element_blank()) +
-  labs(title = "Weekly confirmed COVID-19 cases, all countries (in million)") +
+  labs(title = "Weekly confirmed COVID-19 cases, globally (in million)") +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1),
         axis.text = element_text(size = 7),
-        plot.background = element_rect(fill = "grey90"),
+        plot.background = element_rect(fill = "#FAF8FF"),
         plot.title = element_text(face = "bold", size = 14),
         axis.title.y = element_text(size = 8),
-        legend.title = element_blank(),
         legend.text = element_text(size = 9),
         legend.key = element_rect(fill = NA),
         legend.background = element_rect(fill = NA),
-        plot.margin = margin(10,30,25,5, "pt")) +
+        plot.margin = margin(10,20,22,5, "pt")) +
+  labs(color = "") +  
   scale_x_date(date_breaks = "1 month", date_labels = "%b-%y") +
   scale_y_continuous(
   expand = c(0, 0),
   breaks = seq(0, 100, 5),
   labels = seq(0, 100, 5),
-  limits = c(0, max(weekly_new_cases$million_new_cases) + 1))
+  limits = c(0, max(weekly_cases$million_new_cases) + 1))
   ) %>%
   ggplotly() %>% 
   layout(annotations = 
           list(x = 1,
-               y = -0.15, 
+               y = -0.16, 
                 text = "Data: Dong et al., 2020",
                 showarrow = FALSE,
                 xref='paper',
@@ -80,13 +163,145 @@ weekly_new_cases <- coronavirus %>%
                 font = list(size = 10)
                ))
 
+```
+
+
+
+
+
+```{r plot_covid_continent, echo=FALSE, cache=TRUE, out.width="100%"}
+
+(
+  weekly_cases_continent %>% 
+  ggplot(aes(x = week, y = million_new_cases, color = continent_name)) +
+  geom_line() +
+  geom_point(size = 0.3) +
+  ylab(element_blank()) +
+  xlab(element_blank()) +
+  scale_colour_manual(values = discrete_palette) +
+  labs(title = "Weekly confirmed COVID-19 cases, by continent (in million)") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        axis.text = element_text(size = 7),
+        plot.background = element_rect(fill = "#FAF8FF"),
+        plot.title = element_text(face = "bold", size = 14),
+        axis.title.y = element_text(size = 8),
+        legend.text = element_text(size = 9),
+        legend.key = element_rect(fill = NA),
+        legend.background = element_rect(fill = NA),
+        plot.margin = margin(10,20,22,5, "pt")) +
+  labs(color = "") +  
+  scale_x_date(date_breaks = "1 month", date_labels = "%b-%y") +
+  scale_y_continuous(
+  expand = c(0, 0),
+  breaks = seq(0, 100, 1),
+  labels = seq(0, 100, 1),
+  limits = c(0, max(weekly_cases_continent$million_new_cases) + 1))
+  ) %>%
+  ggplotly() %>% 
+  layout(annotations = 
+          list(x = 1,
+               y = -0.16, 
+                text = "Data: Dong et al., 2020",
+                showarrow = FALSE,
+                xref='paper',
+                yref='paper',
+                font = list(size = 10)
+               ))
 
 ```
 
-```{r get_gtrends, cache=TRUE}
+
+```{r plot_gtrends_wiki, echo=FALSE, cache=TRUE, out.width="100%"}
+(
+  gtrends_wiki_combined %>% 
+  ggplot(aes(x = week, y = weekly_hits_scaled, color = data_source)) +
+  geom_line() +
+  geom_point(size = 0.3) +
+  ylab(element_blank()) +
+  xlab(element_blank()) +
+  scale_colour_manual(values = discrete_palette) +
+  labs(title = "Relative interest in Long Covid") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        axis.text = element_text(size = 7),
+        plot.background = element_rect(fill = "#FAF8FF"),
+        plot.title = element_text(face = "bold", size = 14),
+        axis.title.y = element_text(size = 8),
+        legend.text = element_text(size = 9),
+        legend.key = element_rect(fill = NA),
+        legend.background = element_rect(fill = NA),
+        plot.margin = margin(10,20,22,5, "pt")) +
+  labs(color = "") +  
+  scale_x_date(date_breaks = "1 month", date_labels = "%b-%y") +
+  scale_y_continuous(
+  expand = c(0, 0),
+  breaks = seq(0, 100, 10),
+  labels = paste(seq(0, 100, 10), "%"),
+  limits = c(0, max(gtrends_wiki_combined$weekly_hits_scaled) + 10))
+ ) %>%
+  ggplotly() %>% 
+  layout(annotations = 
+          list(x = 1,
+               y = -0.16, 
+                text = "Data: Dong et al., 2020",
+                showarrow = FALSE,
+                xref='paper',
+                yref='paper',
+                font = list(size = 10)
+               ))
+```
+
+
+
+```{r plot_medrxiv, echo=FALSE, cache=TRUE, out.width="100%"}
+medrxiv %>% 
+ggplot(aes(x = week, y = cumulative_n)) +
+  geom_line(color = "#1A53FF") +
+  geom_point(size = 0.3, color = "#1A53FF") +
+  geom_col(aes(x = week, y = n))   ggplot(aes(x = week, y = weekly_hits_scaled, color = data_source)) +
+  geom_line() +
+  geom_point(size = 0.3) +
+  ylab(element_blank()) +
+  xlab(element_blank()) +
+  scale_colour_manual(values = discrete_palette) +
+  labs(title = "Relative interest in Long Covid") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        axis.text = element_text(size = 7),
+        plot.background = element_rect(fill = "#FAF8FF"),
+        plot.title = element_text(face = "bold", size = 14),
+        axis.title.y = element_text(size = 8),
+        legend.text = element_text(size = 9),
+        legend.key = element_rect(fill = NA),
+        legend.background = element_rect(fill = NA),
+        plot.margin = margin(10,20,22,5, "pt")) +
+  labs(color = "") +  
+  scale_x_date(date_breaks = "1 month", date_labels = "%b-%y") +
+  scale_y_continuous(
+  expand = c(0, 0),
+  breaks = seq(0, 100, 10),
+  labels = paste(seq(0, 100, 10), "%"),
+  limits = c(0, max(gtrends_wiki_combined$weekly_hits_scaled) + 10))
+ ) %>%
+  ggplotly() %>% 
+  layout(annotations = 
+          list(x = 1,
+               y = -0.16, 
+                text = "Data: Dong et al., 2020",
+                showarrow = FALSE,
+                xref='paper',
+                yref='paper',
+                font = list(size = 10)
+               ))
 
 ```
 
-## Our sources
+
+
+
+
+
+### References ^[Acknowledgements: The inspiration for this science communication format has been the article from [Krautreporter](https://krautreporter.de/4299-quantencomputer-verstandlich-erklart)]
 
 
