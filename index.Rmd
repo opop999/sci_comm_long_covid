@@ -233,7 +233,7 @@ plt.axis("off")
 
 ***
 
-### It seems that we keep hearing about Long Covid more and more... <br><br> Perhaps we have somebody in our surrounding that suffer from it... <br><br> This post looks more closely at the public and scientific interest in this topic.
+### It seems that we keep hearing about Long Covid more and more... <br><br> Perhaps we have somebody in our social circle who suffers from it... <br><br> This post looks more closely at the public and scientific interest in this topic.
 
 <br>
 
@@ -243,7 +243,7 @@ As of mid-2022, *Long Covid* (or *post-COVID syndrome*) is far from fully unders
 
 <br>
 
-#### **Q: That sound unpleasant! How many people does it affect?**
+#### **Q: That sounds unpleasant! How many people does it affect?**
 
 First, let's discuss how to get the most reliable answer to a scientific question, which is even more critical for phenomena like Long Covid, which are developing as we speak (or write). Unfortunately, individual studies can sometimes paint a wildly inaccurate picture of reality. This can be due to many reasons, such as inappropriate methodology, a small research sample, or a stroke of pure bad luck!
 
@@ -427,7 +427,7 @@ If we look at the intensity of research interest in Long Covid, as measured by m
 
 <br>
 
-#### **Q: Does that mean we can prove that preprints are first picked up by media, which in turn get people interested in Long Covid?**
+#### **Q: Does that mean we can prove that preprints are first picked up by media, which in turn gets people interested in Long Covid?**
 
 While this is a relative intuitive explanation and there are some hints from recent studies that this might be the case, we have to be again very careful.
 For instance, what about the seeming disconnect between preprints and Google/Wiki data since the beginning of 2022? To better disentangle this, we would need to look closer and give fair evaluation to other data sources and explanations.
