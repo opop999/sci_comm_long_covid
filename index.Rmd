@@ -1,5 +1,5 @@
 ---
-title: "Long Covid:"
+title: "Long Covid"
 subtitle: "What is the buzz all about?"
 author: "Ondrej Pekacek"
 date: "12 July, 2022"
@@ -18,13 +18,13 @@ bibliography: src/references.bib
 
 ***
 
-![Photo by <a href="https://unsplash.com\@harashog?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Sarah G.</a> on <a href="https://unsplash.com/s/photos/confused-dog?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Unsplash</a>](img/header.jpg)
-
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, cache = TRUE, out.width = "100%", message = FALSE, warning = FALSE)
 ```
 
-```{r get_data, include=FALSE}
+```{r prepare_data_with_r, results="hide"}
+# PART 1: Data preparation with R -----------------------------------------
+
 # Package names
 packages <- c("dplyr", "readr", "ggplot2", "coronavirus", "plotly", "gtrendsR", "medrxivr", "pageviews", "scales")
 
@@ -37,15 +37,21 @@ if (any(installed_packages == FALSE)) {
 # Packages loading
 invisible(lapply(packages, library, character.only = TRUE))
 
-# Update the dataset from coronavirus package to get newest stats
-update_dataset(silence = TRUE)
-
 # Define constant variables
 discrete_palette <- c("#e60049", "#0bb4ff", "#9b19f5", "#ffa300", "#dc0ab4", "#b3d4ff", "#00bfa0")
 start_date <- as.Date("2020-01-01")
 end_date <- as.Date("2022-07-01")
+dataset_dir <- "src/datasets/"
+
+# Check for presence of dataset directory
+if (!dir.exists(dataset_dir) | length(list.files(dataset_dir)) == 0) {
+
+dir.create(dataset_dir, showWarnings = FALSE)
 
 # Coronavirus cases -------------------------------------------------------
+
+# Update the dataset from coronavirus package to get newest stats
+update_dataset(silence = TRUE)
 
 # Summarize the data to get weekly new Covid cases for all countries combined
 monthly_cases <- coronavirus %>%
@@ -100,14 +106,13 @@ wiki <- article_pageviews(
   group_by(month) %>%
   summarise(monthly_n = sum(views))
 
-
 # Preprints in the medRxiv database --------------------------------------
 
 # Import the medRxiv database from a cached snapshot
 preprint_data <- mx_snapshot()
 
-# Get cumulative counts
-medrxiv <- mx_search(
+# Narrow down the whole medRxiv to articles based on our search query
+medrxiv_full <- mx_search(
   data = preprint_data,
   fields = c("title", "abstract"),
   auto_caps = TRUE,
@@ -125,7 +130,10 @@ medrxiv <- mx_search(
     "post-Covid-19"
   )
 ) %>%
-  filter(date < end_date) %>%
+  filter(date < end_date)
+
+# Get cumulative counts
+medrxiv <- medrxiv_full %>% 
   mutate(month = as.Date(cut(as.Date(date), breaks = "months", start.on.monday = TRUE))) %>%
   count(month, name = "monthly_n") %>%
   ungroup()
@@ -142,9 +150,90 @@ combined_data <- bind_rows(list(
   group_by(data_source) %>%
   mutate(monthly_n_scaled = round(rescale(monthly_n, to = c(0, 100)))) %>%
   ungroup()
+
+# Save the datasets locally
+saveRDS(combined_data, paste0(dataset_dir, "combined_data.rds"))
+saveRDS(monthly_cases, paste0(dataset_dir, "monthly_cases.rds"))
+saveRDS(monthly_cases_continent, paste0(dataset_dir, "monthly_cases_continent.rds"))
+saveRDS(medrxiv_full, paste0(dataset_dir, "medrxiv_full.rds"))
+
+} else if (dir.exists(dataset_dir) & length(list.files(dataset_dir)) != 0) {
+  
+  combined_data <- readRDS(paste0(dataset_dir, "combined_data.rds"))
+  monthly_cases <- readRDS(paste0(dataset_dir, "monthly_cases.rds"))
+  monthly_cases_continent <- readRDS(paste0(dataset_dir, "monthly_cases_continent.rds"))
+  medrxiv_full <- readRDS(paste0(dataset_dir, "medrxiv_full.rds"))
+}
+
 ```
 
-> *Note to reader: This blog post is a project for the Science Communication Laboratories course at the University of Vienna. The simulated Q&A format between an "expert" and a member of the public was inspired by an article at* [Krautreporter](https://krautreporter.de/4299-quantencomputer-verstandlich-erklart)*. The graphs presented in this article are produced in a fully reproducible programmatic way. You can see the script by clicking on a particulate "code" label. Furthermore, the complete source code of this project is available in a [GitHub repository](https://github.com/opop999/sci_comm_long_covid%22).*
+
+![Photo by <a href="https://unsplash.com\@harashog?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Sarah G.</a> on <a href="https://unsplash.com/s/photos/confused-dog?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Unsplash</a>](img/header.jpg)
+
+
+```{python prepare_data_with_python, echo=TRUE, results="hide", cache=TRUE}
+
+# PART 2: Data preparation with Python ------------------------------------
+
+# For the creation of the wordcloud, as well as text preprocessing, we will rely on Python's libraries.
+import re
+import os
+import matplotlib.pyplot as plt
+from nltk.corpus import stopwords
+from nltk.stem import WordNetLemmatizer
+from wordcloud import WordCloud
+lemmatizer = WordNetLemmatizer()
+
+if not os.path.exists(f"{r.dataset_dir}medrxiv_cleaned.txt"):
+
+    # Combine filtered preprint abstracts and titles to one text.
+    medrxiv_cleaned = r.medrxiv_full["title"] + ". " + r.medrxiv_full["abstract"] \
+        .to_list()
+
+    # Tokenize, lemmatize, remove symbols and stop words.
+    medrxiv_cleaned = " ".join(medrxiv_cleaned) \
+                         .split()
+
+    medrxiv_cleaned = [re.sub(r"[^a-zA-Z0-9-%]", "", word).lower()
+                       for word in medrxiv_cleaned]
+    medrxiv_cleaned = [lemmatizer.lemmatize(
+        word) for word in medrxiv_cleaned if word not in stopwords.words("english") and len(word) > 1]
+
+    with open(f"{r.dataset_dir}medrxiv_cleaned.txt", 'w') as f:
+        f.write('\n'.join(medrxiv_cleaned))
+
+elif os.path.exists(f"{r.dataset_dir}medrxiv_cleaned.txt"):
+    with open(f"{r.dataset_dir}medrxiv_cleaned.txt", "r", encoding="utf-8") as f:
+        medrxiv_cleaned = f.read().splitlines()
+
+# Let's remove Covid terms (which are very frequent), so we actually see the context around Long Covid.
+terms_to_remove = ["covid", "long covid", "covid19", "covid-19",
+                   "cov", "post covid", "sars", "long", "post", "sars-cov-2"]
+
+# Create a wordcloud visualization of the articles_cleaned list of tokens.
+wordcloud = WordCloud(scale=3,
+                      width=2000,
+                      height=1000,
+                      random_state=42,
+                      background_color="white",
+                      colormap=plt.cm.get_cmap("Blues").reversed(),
+                      collocations=True,
+                      min_word_length=2,
+                      stopwords=terms_to_remove,
+                      collocation_threshold=5,
+                      min_font_size=10,
+                      include_numbers=False,
+                      font_path="src/Staatliches-Regular.ttf").generate(" ".join(medrxiv_cleaned))
+
+# Display the wordcloud image.
+plt.figure(figsize=(20,10))
+plt.imshow(wordcloud, interpolation="bilinear", aspect="auto")
+plt.margins(x=0, y=0)
+plt.axis("off")
+
+```
+
+> *Note to reader: This blog post is a project for the Science Communication Laboratories course at the University of Vienna. The simulated Q&A format between an "expert" and a member of the public was inspired by an article at* [<i>Krautreporter</i>](https://krautreporter.de/4299-quantencomputer-verstandlich-erklart)*. The graphs presented in this article are produced in a fully reproducible programmatic way. You can see the script by clicking on a particulate "code" label. Furthermore, the complete source code of this project is available in a [GitHub repository](https://github.com/opop999/sci_comm_long_covid%22).*
 
 ***
 
@@ -154,7 +243,7 @@ combined_data <- bind_rows(list(
 
 #### **Q: Okay, hold on. What actually is Long Covid?**
 
-As of mid-2022, *Long Covid* (or *post-COVID syndrome*) is far from fully understood, and its research is constantly in flux. For instance, [CDC's](https://www.cdc.gov/coronavirus/2019-ncov/long-term-effects/index.html) website lists potential symptoms people can experience without testing positive for Covid-19: tiredness, chronic cough, and "brain fog," among many others. These symptoms can last for months and possibly years - it is simply too soon to say.
+As of mid-2022, *Long Covid* (or *post-COVID syndrome*) is far from fully understood, and its research is constantly in flux. For instance, [CDC's](https://www.cdc.gov/coronavirus/2019-ncov/long-term-effects/index.html) website lists potential symptoms people can experience without testing positive for Covid-19: tiredness, chronic cough, and "brain fog," among many others. These symptoms can last for months and possibly years - it is simply too soon to say.
 
 <br>
 
@@ -346,6 +435,23 @@ If we look at the intensity of research interest in Long Covid, as measured by m
 
 While this is a relative intuitive explanation and there are some hints from recent studies that this might be the case, we have to be again very careful.
 For instance, what about the seeming disconnect between preprints and Google/Wiki data since the beginning of 2022? To better disentangle this, we would need to look closer and give fair evaluation to other data sources and explanations.
+
+<br>
+
+#### **Q: Alright, understood. But still, do we at least know what these preprints have been talking about?**
+
+Sure, we can use Natural Language Processing (NLP) tools to understand textual data better. If we combine all the text from preprints' titles and abstracts, we can find the most frequent words or word combinations.
+
+In the example word cloud visualization below, it would seem that in the area of Long Covid research, preprints have often discussed the persistence of symptoms and the impact of Long Covid on health care, mental health, and quality of life. However, from this brief textual analysis, we do not know how exactly preprints used these terms. 
+
+Take, for instance, the "systematic review" phrase. Does this mean that some of these preprints are *systematic reviews*? Or, perhaps, they are citing a pre-existing review article? From this bird's-eye view we simply do not have a precise answer. Yet again, we need to examine them in more detail before making definite conclusions. 
+
+```{python wordcloud_show, cache = TRUE, out.width = "100%"}
+#  Show the wordcloud prepared in the previous code chunks ----------------
+plt.tight_layout(pad=0)
+plt.show()
+```
+
 
 <br>
 
