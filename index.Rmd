@@ -45,126 +45,122 @@ dataset_dir <- "src/datasets/"
 
 # Check for presence of dataset directory
 if (!dir.exists(dataset_dir) | length(list.files(dataset_dir)) == 0) {
+  dir.create(dataset_dir, showWarnings = FALSE)
 
-dir.create(dataset_dir, showWarnings = FALSE)
+  # Coronavirus cases -------------------------------------------------------
 
-# Coronavirus cases -------------------------------------------------------
+  # Update the dataset from coronavirus package to get newest stats
+  update_dataset(silence = TRUE)
 
-# Update the dataset from coronavirus package to get newest stats
-update_dataset(silence = TRUE)
+  # Summarize the data to get weekly new Covid cases for all countries combined
+  monthly_cases <- coronavirus %>%
+    filter(type == "confirmed" & date < end_date) %>%
+    mutate(month = as.Date(cut(date, breaks = "months", start.on.monday = TRUE))) %>%
+    group_by(month) %>%
+    summarise(million_new_cases = round(sum(cases) / 1000000, 3))
 
-# Summarize the data to get weekly new Covid cases for all countries combined
-monthly_cases <- coronavirus %>%
-  filter(type == "confirmed" & date < end_date) %>%
-  mutate(month = as.Date(cut(date, breaks = "months", start.on.monday = TRUE))) %>%
-  group_by(month) %>%
-  summarise(million_new_cases = round(sum(cases) / 1000000, 3))
+  # Repeat the same for continents
+  monthly_cases_continent <- coronavirus %>%
+    filter(type == "confirmed" & date < end_date & !is.na(continent_name)) %>%
+    mutate(
+      month = as.Date(cut(date, breaks = "months", start.on.monday = TRUE)),
+      continent_name = as.factor(continent_name)
+    ) %>%
+    group_by(month, continent_name) %>%
+    summarise(million_new_cases = round(sum(cases) / 1000000, 3))
 
-# Repeat the same for continents
-monthly_cases_continent <- coronavirus %>%
-  filter(type == "confirmed" & date < end_date & !is.na(continent_name)) %>%
-  mutate(
-    month = as.Date(cut(date, breaks = "months", start.on.monday = TRUE)),
-    continent_name = as.factor(continent_name)
+  # Google Trends -----------------------------------------------------------
+
+  # Extract Google Trends data using the gtrendsR package
+  gtrends <- gtrends(
+    keyword = "long covid",
+    geo = "",
+    time = paste(start_date, end_date),
+    gprop = "web",
+    onlyInterest = TRUE
   ) %>%
-  group_by(month, continent_name) %>%
-  summarise(million_new_cases = round(sum(cases) / 1000000, 3))
+    .[["interest_over_time"]] %>%
+    transmute(
+      month = as.Date(cut(as.Date(date) + 1, breaks = "months", start.on.monday = TRUE)),
+      hits = as.numeric(replace(hits, hits == "<1", "0"))
+    ) %>%
+    group_by(month) %>%
+    summarise(monthly_n = sum(hits))
 
-# Google Trends -----------------------------------------------------------
+  # Visits to Wikipedia article ---------------------------------------------
 
-# Extract Google Trends data using the gtrendsR package
-gtrends <- gtrends(
-  keyword = "long covid",
-  geo = "",
-  time = paste(start_date, end_date),
-  gprop = "web",
-  onlyInterest = TRUE
-) %>%
-  .[["interest_over_time"]] %>%
-  transmute(
-    month = as.Date(cut(as.Date(date) + 1, breaks = "months", start.on.monday = TRUE)),
-    hits = as.numeric(replace(hits, hits == "<1", "0"))
+  # Extract data for visits of "Long Covid" Wiki page from human users with pageviews package
+  wiki <- article_pageviews(
+    project = "en.wikipedia",
+    article = "Long_COVID",
+    user_type = "user",
+    start = pageview_timestamps(start_date),
+    end = pageview_timestamps(end_date),
+    granularity = "daily"
   ) %>%
-  group_by(month) %>%
-  summarise(monthly_n = sum(hits))
+    transmute(
+      month = as.Date(cut(as.Date(date) + 1, breaks = "months", start.on.monday = TRUE)),
+      views = as.numeric(views)
+    ) %>%
+    group_by(month) %>%
+    summarise(monthly_n = sum(views))
 
-# Visits to Wikipedia article ---------------------------------------------
+  # Preprints in the medRxiv database --------------------------------------
 
-# Extract data for visits of "Long Covid" Wiki page from human users with pageviews package
-wiki <- article_pageviews(
-  project = "en.wikipedia",
-  article = "Long_COVID",
-  user_type = "user",
-  start = pageview_timestamps(start_date),
-  end = pageview_timestamps(end_date),
-  granularity = "daily"
-) %>%
-  transmute(
-    month = as.Date(cut(as.Date(date) + 1, breaks = "months", start.on.monday = TRUE)),
-    views = as.numeric(views)
+  # Import the medRxiv database from a cached snapshot
+  preprint_data <- mx_snapshot()
+
+  # Narrow down the whole medRxiv to articles based on our search query
+  medrxiv_full <- mx_search(
+    data = preprint_data,
+    fields = c("title", "abstract"),
+    auto_caps = TRUE,
+    query = c(
+      "long covid",
+      "long Covid",
+      "long COVID",
+      "long-COVID",
+      "long COVID-19",
+      "long Covid-19",
+      "post-COVID",
+      "post COVID",
+      "post-COVID-19",
+      "post-covid-19",
+      "post-Covid-19"
+    )
   ) %>%
-  group_by(month) %>%
-  summarise(monthly_n = sum(views))
+    filter(date < end_date)
 
-# Preprints in the medRxiv database --------------------------------------
+  # Get cumulative counts
+  medrxiv <- medrxiv_full %>%
+    mutate(month = as.Date(cut(as.Date(date), breaks = "months", start.on.monday = TRUE))) %>%
+    count(month, name = "monthly_n") %>%
+    ungroup()
 
-# Import the medRxiv database from a cached snapshot
-preprint_data <- mx_snapshot()
+  # Combine Google Trends, Wikipedia views and Preprints -------------------
+  combined_data <- bind_rows(list(
+    "Google" = gtrends,
+    "Wikipedia" = wiki,
+    "medRxiv" = medrxiv
+  ),
+  .id = "data_source"
+  ) %>%
+    filter(month < end_date) %>%
+    group_by(data_source) %>%
+    mutate(monthly_n_scaled = round(rescale(monthly_n, to = c(0, 100)))) %>%
+    ungroup()
 
-# Narrow down the whole medRxiv to articles based on our search query
-medrxiv_full <- mx_search(
-  data = preprint_data,
-  fields = c("title", "abstract"),
-  auto_caps = TRUE,
-  query = c(
-    "long covid",
-    "long Covid",
-    "long COVID",
-    "long-COVID",
-    "long COVID-19",
-    "long Covid-19",
-    "post-COVID",
-    "post COVID",
-    "post-COVID-19",
-    "post-covid-19",
-    "post-Covid-19"
-  )
-) %>%
-  filter(date < end_date)
-
-# Get cumulative counts
-medrxiv <- medrxiv_full %>% 
-  mutate(month = as.Date(cut(as.Date(date), breaks = "months", start.on.monday = TRUE))) %>%
-  count(month, name = "monthly_n") %>%
-  ungroup()
-
-# Combine Google Trends, Wikipedia views and Preprints -------------------
-combined_data <- bind_rows(list(
-  "Google" = gtrends,
-  "Wikipedia" = wiki,
-  "medRxiv" = medrxiv
-),
-.id = "data_source"
-) %>%
-  filter(month < end_date) %>%
-  group_by(data_source) %>%
-  mutate(monthly_n_scaled = round(rescale(monthly_n, to = c(0, 100)))) %>%
-  ungroup()
-
-# Save the datasets locally
-saveRDS(combined_data, paste0(dataset_dir, "combined_data.rds"))
-saveRDS(monthly_cases, paste0(dataset_dir, "monthly_cases.rds"))
-saveRDS(monthly_cases_continent, paste0(dataset_dir, "monthly_cases_continent.rds"))
-saveRDS(medrxiv_full, paste0(dataset_dir, "medrxiv_full.rds"))
-
+  # Save the datasets locally
+  saveRDS(combined_data, paste0(dataset_dir, "combined_data.rds"))
+  saveRDS(monthly_cases, paste0(dataset_dir, "monthly_cases.rds"))
+  saveRDS(monthly_cases_continent, paste0(dataset_dir, "monthly_cases_continent.rds"))
+  saveRDS(medrxiv_full, paste0(dataset_dir, "medrxiv_full.rds"))
 } else if (dir.exists(dataset_dir) & length(list.files(dataset_dir)) != 0) {
-  
   combined_data <- readRDS(paste0(dataset_dir, "combined_data.rds"))
   monthly_cases <- readRDS(paste0(dataset_dir, "monthly_cases.rds"))
   monthly_cases_continent <- readRDS(paste0(dataset_dir, "monthly_cases_continent.rds"))
   medrxiv_full <- readRDS(paste0(dataset_dir, "medrxiv_full.rds"))
 }
-
 ```
 
 
@@ -303,7 +299,7 @@ For this reason, scientists prefer consulting "studies of studies," better known
 
 #### **Q: I see. But let's rewind the time a bit. How did Long Covid even enter our social media feeds and daily vocabulary?**
 
-That is not a trivial question to answer. It depends on the angle we look. To even try, we need to establish some common baseline. We are talking about the concept of Long Covid as it exists in English. Since you are reading this article in English, there is a higher chance you come from a country where English is the majority language. We can thus suppose that the public interest in the "Long Covid" (and not "ロングコビッド") will not be equally geographically distributed. 
+That is not a trivial question to answer. It depends on the angle we look. To even try, we need to establish some common baseline. We are talking about the concept of Long Covid as it exists in English. Since you are reading this article in English, there is a higher chance you come from a country where English is the majority language. We can thus suppose that the public interest in the "Long Covid" (and not, for instance, the Japanese version "ロングコビッド") will be unequally geographically distributed. 
 
 However, the same applies to Covid-19 itself. If you look at the graphic below, you might find it quite different from the previous one - the number of confirmed cases sometimes varies enormously from continent to continent (although Q1 2022 was the worst for each continent, except for Oceania). So, this is something to keep in mind when interpreting the data further.
 
@@ -446,20 +442,18 @@ In the example word cloud visualization below, it would seem that in the area of
 
 Take, for instance, the "systematic review" phrase. Does this mean that some of these preprints are *systematic reviews*? Or, perhaps, they are citing a pre-existing review article? From this bird's-eye view we simply do not have a precise answer. Yet again, we need to examine them in more detail before making definite conclusions. 
 
+To sum it all up - scientific work might be part art and part luck, but a significant part of the process still consists of a thorough detective-like job, which includes regular questioning of our pre-existing beliefs and openness to the change of opinion.
+
+**This is no different when it comes to the Long Covid subject.** 
+
 ```{python wordcloud_show, cache = TRUE, out.width = "100%"}
 #  Show the wordcloud prepared in the previous code chunks ----------------
 plt.tight_layout(pad=0)
 plt.show()
 ```
 
-
-<br>
-
-#### Summing up: <br><br> Scientific work might be part art and part luck, but a significant part of the process still consists of a thorough detective-like job, which includes regular questioning of our pre-existing beliefs and openness to the change of opinion. <br> <br> This is no different when it comes to the Long Covid subject. 
+***
 
 <br> 
 
-***
-
 #### **References**
-
