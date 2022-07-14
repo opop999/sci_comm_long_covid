@@ -3,4 +3,4 @@
 
 This is a repository for the analytical workflow and supplementary files.
 
-![Site Preview](src/web_preview.gif)
+![Site Preview](img/web_preview.gif)
